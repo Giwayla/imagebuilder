@@ -201,7 +201,7 @@ fi
 	cat > BUILD-MANIFEST.txt <<BODYEOF
 ## daede 固件 · ${EXTRA_IMAGE_NAME}
 
-基于 ImmortalWrt 25.12-SNAPSHOT，x86-64 通用镜像，squashfs-only。
+基于 ImmortalWrt 25.12.1，x86-64 通用镜像，squashfs-only。
 
 ### 推荐下载
 
