@@ -18,5 +18,9 @@ passwd -d root 2>/dev/null || sed -i 's#^root:[^:]*:#root::#' /etc/shadow
 
 /etc/init.d/network restart
 /etc/init.d/dropbear restart
+# 解决新版防火墙与Docker桥接网络引发的内网域名回流死锁故障
+echo "net.bridge.bridge-nf-call-iptables=0" >> /etc/sysctl.conf
+echo "net.bridge.bridge-nf-call-ip6tables=0" >> /etc/sysctl.conf
+echo "net.bridge.bridge-nf-call-arptables=0" >> /etc/sysctl.conf
 
 exit 0
