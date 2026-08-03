@@ -15,7 +15,7 @@ DAEDE_RELEASE_TAG="${DAEDE_RELEASE_TAG:-latest}"
 DAEDE_ARCH="${DAEDE_ARCH:-x86_64}"
 DAEDE_APK_URL="${DAEDE_APK_URL:-}"
 
-EXTRA_PACKAGES="luci luci-i18n-base-zh-cn luci-i18n-package-manager-zh-cn -kmod-br-netfilter luci-app-firewall luci-i18n-firewall-zh-cn daed-geoip daed-geosite daed luci-app-daede luci-app-ddns-go kmod-nft-nat nftables-json luci-i18n-ddns-go-zh-cn luci-app-dockerman luci-i18n-dockerman-zh-cn luci-app-passwall luci-i18n-passwall-zh-cn luci-app-uhttpd luci-i18n-uhttpd-zh-cn kmod-sched-core kmod-sched-bpf kmod-tcp-bbr kmod-sched kmod-veth kmod-xdp-sockets-diag curl nano"
+EXTRA_PACKAGES="luci luci-i18n-base-zh-cn luci-i18n-package-manager-zh-cn -kmod-br-netfilter luci-app-firewall luci-i18n-firewall-zh-cn luci-app-ddns-go kmod-nft-nat nftables-json luci-i18n-ddns-go-zh-cn luci-app-dockerman luci-i18n-dockerman-zh-cn luci-app-passwall luci-i18n-passwall-zh-cn luci-app-uhttpd luci-i18n-uhttpd-zh-cn kmod-sched-core kmod-sched-bpf kmod-tcp-bbr kmod-sched kmod-veth kmod-xdp-sockets-diag curl nano"
 WORK_DIR="${WORK_DIR:-$PWD/work}"
 IB_ARCHIVE="$WORK_DIR/imagebuilder.tar.zst"
 
@@ -109,10 +109,25 @@ rm -rf "$WORK_DIR/imagebuilder"
 mkdir -p "$WORK_DIR/imagebuilder"
 tar --use-compress-program=unzstd -xf "$IB_ARCHIVE" -C "$WORK_DIR/imagebuilder" --strip-components=1
 
+# 1. 复制你本地的自定义文件
 cp -a files "$WORK_DIR/imagebuilder/files"
+
+# 2. 注入 Loyalsoldier 的最新 GeoIP 和 GeoSite 数据包到固件对应的 dae 目录下
+echo "正在下载并注入 Loyalsoldier 最新大容量路由数据..."
+mkdir -p "$WORK_DIR/imagebuilder/files/usr/share/dae"
+curl -L --retry 8 --retry-delay 5 --connect-timeout 30 \
+  -o "$WORK_DIR/imagebuilder/files/usr/share/dae/geoip.dat" \
+  "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat"
+
+curl -L --retry 8 --retry-delay 5 --connect-timeout 30 \
+  -o "$WORK_DIR/imagebuilder/files/usr/share/dae/geosite.dat" \
+  "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat"
+
+# 3. 继续执行上一轮修改好的 daede APK 下载函数
 install_daede_apk
 
 cd "$WORK_DIR/imagebuilder"
+
 
 echo "Version: $VERSION"
 echo "Target: $TARGET"
