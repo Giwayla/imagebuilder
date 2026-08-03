@@ -55,19 +55,18 @@ if token:
 with urllib.request.urlopen(request, timeout=30) as response:
     release = json.load(response)
 
-suffix = f"-{arch}.apk"
-matches = [
-    asset.get("browser_download_url") or asset.get("url")
-    for asset in release.get("assets", [])
-    if asset.get("name", "").startswith("luci-app-daede-")
-    and asset.get("name", "").endswith(suffix)
-]
+# 同时寻找 luci-app-daede, daed 和 dae 
+assets = release.get("assets", [])
+daede_url = next((a["browser_download_url"] for a in assets if a["name"].startswith("luci-app-daede-") and a["name"].endswith(f"-{arch}.apk")), None)
+daed_url  = next((a["browser_download_url"] for a in assets if a["name"].startswith("daed-") and a["name"].endswith(f"-{arch}.apk")), None)
+dae_url   = next((a["browser_download_url"] for a in assets if a["name"].startswith("dae-") and a["name"].endswith(f"-{arch}.apk")), None)
 
-if not matches:
+if not daede_url:
     tag = release.get("tag_name", release_api)
     raise SystemExit(f"luci-app-daede APK for {arch} not found in {tag}")
 
-print(matches[0])
+# 将三个 URL 以空格分隔输出返回给 Shell
+print(f"{daede_url} {daed_url} {dae_url}")
 PY
 }
 
@@ -75,27 +74,31 @@ install_daede_apk() {
   case "$INSTALL_DAEDE" in
     1|true|yes) ;;
     *)
-      echo "Skipping luci-app-daede release APK download."
+      echo "Skipping daede release APK download."
       return
       ;;
   esac
 
   local packages_dir="$WORK_DIR/imagebuilder/packages"
-  local daede_url
-  daede_url="$(resolve_daede_apk_url)"
   mkdir -p "$packages_dir"
 
-  # Strip the -<arch> suffix from the release filename. apk mkndx indexes the
-  # package under its canonical name-version.apk; if the file keeps the
-  # -x86_64 suffix the index entry points to a missing file and the build
-  # fails with "package mentioned in index not found".
-  local fname="${daede_url##*/}"
-  fname="${fname%-${DAEDE_ARCH}.apk}.apk"
+  # 读取 Python 返回的三个 URL
+  local urls
+  urls="$(resolve_daede_apk_url)"
 
-  echo "Downloading luci-app-daede APK: $daede_url -> $fname"
-  curl -L --retry 8 --retry-delay 5 --connect-timeout 30 \
-    -o "$packages_dir/$fname" "$daede_url"
+  for url in $urls; do
+    [ "$url" = "None" ] && continue # 预防某些组件未生成的情况
+
+    local fname="${url##*/}"
+    # 统一下载并去除 -x86_64 后缀，防止 apk mkndx 索引找不到文件报错
+    fname="${fname%-${DAEDE_ARCH}.apk}.apk"
+
+    echo "Downloading components: $url -> $fname"
+    curl -L --retry 8 --retry-delay 5 --connect-timeout 30 \
+      -o "$packages_dir/$fname" "$url"
+  done
 }
+
 
 if [ ! -s "$IB_ARCHIVE" ]; then
   curl -L --retry 8 --retry-delay 5 --connect-timeout 30 \
