@@ -16,11 +16,19 @@ uci commit dropbear
 # Keep first boot credential-free and force LuCI/console users to set a password.
 passwd -d root 2>/dev/null || sed -i 's#^root:[^:]*:#root::#' /etc/shadow
 
+uci -q delete system.bbr
+uci set system.bbr=sysctl
+uci set system.bbr.net_core_default_qdisc='fq'
+uci set system.bbr.net_ipv4_tcp_congestion_control='bbr'
+uci commit system
+
 /etc/init.d/network restart
 /etc/init.d/dropbear restart
 # 解决新版防火墙与Docker桥接网络引发的内网域名回流死锁故障
 echo "net.bridge.bridge-nf-call-iptables=0" >> /etc/sysctl.conf
 echo "net.bridge.bridge-nf-call-ip6tables=0" >> /etc/sysctl.conf
 echo "net.bridge.bridge-nf-call-arptables=0" >> /etc/sysctl.conf
+echo "net.core.default_qdisc=fq" >> /etc/sysctl.conf
+echo "net.ipv4.tcp_congestion_control=bbr" >> /etc/sysctl.conf
 
 exit 0
