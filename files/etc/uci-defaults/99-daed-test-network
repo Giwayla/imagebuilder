@@ -13,6 +13,11 @@ uci set dropbear.main.Port='9167'
 uci set dropbear.main.Interface='lan'
 uci commit dropbear
 
+uci set network.eth1=device
+uci set network.eth1.name='eth1'
+uci set network.eth1.qdisc='fq'
+
+
 # Keep first boot credential-free and force LuCI/console users to set a password.
 passwd -d root 2>/dev/null || sed -i 's#^root:[^:]*:#root::#' /etc/shadow
 
@@ -21,6 +26,11 @@ uci set system.bbr=sysctl
 uci set system.bbr.net_core_default_qdisc='fq'
 uci set system.bbr.net_ipv4_tcp_congestion_control='bbr'
 uci commit system
+# 锁定物理网卡的默认队列为 fq
+uci set network.eth0=device
+uci set network.eth0.name='eth0'
+uci set network.eth0.qdisc='fq'
+
 
 /etc/init.d/network restart
 /etc/init.d/dropbear restart
